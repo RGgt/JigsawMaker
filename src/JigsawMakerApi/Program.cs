@@ -1,4 +1,7 @@
 
+using Azure.Core;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Carter;
 using JigsawMakerApi.DataAccess;
 using Microsoft.Data.SqlClient;
@@ -12,12 +15,39 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // READ SECRET FROM AZURE KEYS VAULT
+
+        // Get key vault name/address
+        var azureVaultName = builder.Configuration["AzureVaultName"];
+        if(azureVaultName is null) 
+            throw new ArgumentNullException(nameof(azureVaultName));
+
+        // connect to keys vault
+        SecretClientOptions options = new()
+        {
+            Retry =
+        {
+            Delay= TimeSpan.FromSeconds(2),
+            MaxDelay = TimeSpan.FromSeconds(16),
+            MaxRetries = 5,
+            Mode = RetryMode.Exponential
+         }
+        };
+        var client = new SecretClient(new Uri(azureVaultName), new DefaultAzureCredential(), options);
+
+        // get database password from keys vault
+        KeyVaultSecret secret = client.GetSecret("DbPassword");
+        string dbPassword = secret.Value;
+
+        // GET DATABASE CONNECITON STRING
+
         // read partial connection string from configuration
         var partialConnectionString = builder.Configuration.GetConnectionString("Database");
-        // compose complet connection string loading password from secrets
+
+        // compose complet connection string loading password retrieved from the keys vault
         var conStrBuilder = new SqlConnectionStringBuilder(partialConnectionString)
         {
-            Password = builder.Configuration["DbPassword"]
+            Password = dbPassword
         };
         var connectionString = conStrBuilder.ConnectionString;
 
@@ -38,6 +68,7 @@ public class Program
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
+
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
