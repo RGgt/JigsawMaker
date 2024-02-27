@@ -3,7 +3,10 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using Carter;
+using JigsawMakerApi.Configuration;
+using JigsawMakerApi.Contracts;
 using JigsawMakerApi.DataAccess;
+using JigsawMakerApi.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +14,7 @@ namespace JigsawMakerApi;
 
 public class Program
 {
-    public static async Task Main(string[] args)
+    public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +41,6 @@ public class Program
         // get database password from keys vault
         KeyVaultSecret secret = client.GetSecret("DbPassword");
         string dbPassword = secret.Value;
-
         // GET DATABASE CONNECITON STRING
 
         // read partial connection string from configuration
@@ -50,6 +52,22 @@ public class Program
             Password = dbPassword
         };
         var connectionString = conStrBuilder.ConnectionString;
+
+        //
+        builder.Services.Configure<AzureBlobStorageOptions>(options =>
+        {
+            builder.Configuration.GetSection("AzureBlobStorage").Bind(options);
+        });
+
+        builder.Services.Configure<AzureKeyVaultOptions>(options =>
+        {
+            builder.Configuration.GetSection("AzureKeyVault").Bind(options);
+        });
+
+
+        builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
+        builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+        builder.Services.AddScoped<IConnectionStringBuilderService, ConnectionStringBuilderService>();
 
         // Add DbContext
         builder.Services.AddDbContext<AppDbContext>(o => o.UseSqlServer(connectionString));
