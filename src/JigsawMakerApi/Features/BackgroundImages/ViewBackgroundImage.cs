@@ -20,8 +20,8 @@ public class ViewBackgroundImage : ICarterModule
                 return Results.File(memoryStream.ToArray(), "image/png");
             }
         })
-            .WithOpenApi()
-            .WithSummary("Serve a static image")
-            .WithDescription("Retrieves a an image from a special folder inside the Azure Storage Blob and serves it forward.");
+        .WithOpenApi()
+        .WithSummary("Serve a static image")
+        .WithDescription("Retrieves a an image from a special folder inside the Azure Storage Blob and serves it forward.");
     }
 }

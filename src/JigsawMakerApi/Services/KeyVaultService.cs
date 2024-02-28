@@ -13,7 +13,9 @@ public class KeyVaultService : IKeyVaultService
 
     public KeyVaultService(IOptions<AzureKeyVaultOptions> congiguredOptions)
     {
+        // Retrieve the Azure Key Vault name from configuration
         string azureVaultName = congiguredOptions.Value.VaultName;
+        // Configure retry options for secret client calls
         SecretClientOptions options = new()
         {
             Retry =
@@ -24,7 +26,11 @@ public class KeyVaultService : IKeyVaultService
             Mode = RetryMode.Exponential
          }
         };
-        _client = new SecretClient(new Uri(azureVaultName), new DefaultAzureCredential(), options);
+        // Create a SecretClient instance
+        _client = new SecretClient(
+            new Uri(azureVaultName), 
+            new DefaultAzureCredential(), 
+            options);
     }
 
     public async Task<string> GetSecretAsync(string secretName)
